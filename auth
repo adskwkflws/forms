@@ -10,8 +10,8 @@ import json
 import os
 
 # Replace with your Client ID, Client Secret, and Callback URL from APS app
-CLIENT_ID = "A1nztYubWhnUuGqYYwiAh5GpAFKLlb2SwKpJIo4nl2RmDzL7"
-CLIENT_SECRET = "O8XG4Kfyz0xEWyMYx2J8h2pgeRkGfrGOVmHpj7GNT1dJnAsYyeAxLht7EGFcNyK6"
+CLIENT_ID = "INSERT HERE"
+CLIENT_SECRET = "INSERT HERE"
 REDIRECT_URI = "http://localhost:8080/"
 
 # Step 1: Generate and open authorization URL
