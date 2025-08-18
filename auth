@@ -1,6 +1,6 @@
 #INSTRUCTIONS:
 
-#pip install fpdf first 
+#make sure dependancies from README are installed first 
 #after running this script, it will re route you to ADSK login 
 #copy paste code from URL and enter it in response
 
