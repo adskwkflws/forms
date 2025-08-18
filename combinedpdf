@@ -32,7 +32,7 @@ COMBINED_PDF_NAME = "testcombined.pdf" #final PDF file name
 FORMDATE_LAST_N_DAYS = None  #filter by formdate
 
 # --- LOGO ---
-LOGO_PATH = "/Users/alexanderjvanhoff/Downloads/Starlinelogo.png" #copy paste the file path to your logo image 
+LOGO_PATH = "INSERE HERE" #copy paste the file path to your logo image 
 LOGO_MAX_W = 1.2 * inch      
 LOGO_MAX_H = 0.40 * inch    
 LOGO_PADDING_RIGHT = 0      
