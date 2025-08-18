@@ -1,8 +1,10 @@
 #INSTRUCTIONS
 
-#You only need to enter details under CONFIG heading, everything else should work as is 
+#Config section is the only section you need to fill out before running 
+#Make sure Logo_Path points to the logo file path on your computer 
 
 import os
+import re
 import json
 import time
 import random
@@ -20,19 +22,19 @@ from datetime import date, timedelta
 # -----------------------------
 # -------- CONFIG -------------
 # -----------------------------
-CLIENT_ID = "INSERT HERE" #copy paste from your APS app 
-CLIENT_SECRET = "INSERT HERE" #copy paste from your APS app 
-HUB_ID = "b.INSERT ACCOUNT ID HERE" #copy paste your account ID here with a "b." prefix
+CLIENT_ID = "INSERT HERE"  # copy paste from your APS app 
+CLIENT_SECRET = "INSERT HERE"  # copy paste from your APS app 
+HUB_ID = "b.INSERT HERE"  # copy paste your account ID here with a "b." prefix
 ACCOUNT_ID = HUB_ID.replace("b.", "")
 REGION = "US"
-FORM_TEMPLATE_NAME = "IN-0005A Project Weekly Report" #must be exact in order to work 
+FORM_TEMPLATE_NAME = "IN-0005A Project Weekly Report"  # must be exact in order to work 
 TOKENS_FILE = "tokens.json"
-OUTPUT_DIR = "form_pdfs" #folder to route PDF to 
-COMBINED_PDF_NAME = "testcombined.pdf" #final PDF file name 
-FORMDATE_LAST_N_DAYS = None  #filter by formdate
+OUTPUT_DIR = "INSERT HERE"  # folder to route PDF to 
+COMBINED_PDF_NAME = "INSERT HERE"  # final PDF file name 
+FORMDATE_LAST_N_DAYS = None  # filter by formDate (None or int)
 
 # --- LOGO ---
-LOGO_PATH = "INSERE HERE" #copy paste the file path to your logo image 
+LOGO_PATH = "INSERT HERE"  # file path to your logo image 
 LOGO_MAX_W = 1.2 * inch      
 LOGO_MAX_H = 0.40 * inch    
 LOGO_PADDING_RIGHT = 0      
@@ -40,7 +42,7 @@ LOGO_PADDING_TOP = 0
 
 # --- PDF Layout / Table widths ---
 TEXT_COL_W = 2.5 * inch
-IMG_COL_W  = 3.0 * inch 
+IMG_COL_W  = 3.0 * inch  # images in the table bounded to this size (keeps aspect), same as referenced photos grid logic
 
 # --- Global Rate Limiting ---
 REQUESTS_PER_MINUTE = 60   
@@ -58,14 +60,10 @@ _LAST_REQ_TS = 0.0
 _MIN_INTERVAL = 60.0 / max(1, int(REQUESTS_PER_MINUTE or 1))
 
 def rl_request(method: str, url: str, **kwargs) -> requests.Response:
-    """
-    Rate-limited request with basic exponential backoff for 429/5xx.
-    Returns the response (even on non-2xx), caller decides how to handle.
-    """
+    """Rate-limited request with basic exponential backoff for 429/5xx."""
     global _LAST_REQ_TS
     attempt = 0
     while True:
-        # pacing
         now = time.time()
         wait = max(0.0, _LAST_REQ_TS + _MIN_INTERVAL - now)
         if wait > 0:
@@ -74,7 +72,6 @@ def rl_request(method: str, url: str, **kwargs) -> requests.Response:
         _LAST_REQ_TS = time.time()
         resp = SESSION.request(method, url, **kwargs)
 
-        # retry logic for 429/5xx
         retryable = (resp.status_code == 429) or (500 <= resp.status_code < 600)
         if retryable and attempt < MAX_RETRIES:
             attempt += 1
@@ -213,9 +210,7 @@ def rel_form_to_photos(tok: str, project_id: str, form_id: str) -> List[str]:
             print(f"Failed to fetch form relationships for form {form_id}: {r.status_code} - {r.text}")
             break
         j = r.json() or {}
-        relationships = (j.get("relationships") or [])
-        print(f"Fetched {len(relationships)} referenced photo relationships page for form {form_id}")
-        for rel in relationships:
+        for rel in (j.get("relationships") or []):
             for e in rel.get("entities", []):
                 if e.get("domain") == "autodesk-construction-photo" and e.get("type") == "photo":
                     pid = e.get("id")
@@ -240,9 +235,7 @@ def rel_formfield_to_photos(tok: str, project_id: str) -> Dict[str, Dict[str, Li
             print(f"Failed to fetch formfield relationships: {r.status_code} - {r.text}")
             break
         j = r.json() or {}
-        relationships = (j.get("relationships") or [])
-        print(f"Fetched {len(relationships)} formfield relationships page")
-        for rel in relationships:
+        for rel in (j.get("relationships") or []):
             entities = rel.get("entities", [])
             if (
                 len(entities) > 1 and
@@ -260,9 +253,8 @@ def rel_formfield_to_photos(tok: str, project_id: str) -> Dict[str, Dict[str, Li
                     form_field_photos.setdefault(form_id, {}).setdefault(field_id, [])
                     if photo_id not in form_field_photos[form_id][field_id]:
                         form_field_photos[form_id][field_id].append(photo_id)
-                        print(f"Matched form {form_id} field {field_id} with formfield photo {photo_id}")
                 except ValueError:
-                    print(f"Invalid field URN format: {field_urn}")
+                    pass
         next_url = (j.get("pagination") or {}).get("nextUrl")
     return form_field_photos
 
@@ -307,16 +299,44 @@ def download_photos(photos_meta: List[dict], out_dir: str, prefix: str) -> Dict[
                 with open(local, "wb") as f:
                     f.write(rr.content)
                 id2path[pid] = local
-                print(f"Downloaded photo {pid} to {local}")
             except Exception as e:
                 print(f"Failed to download photo {pid}: {str(e)}")
     return id2path
 
 # -----------------------------
+# ----- FORM DETAILS (fallback)
+# -----------------------------
+def get_form_details(tok: str, project_id: str, form_id: str) -> Optional[dict]:
+    """Fallback detail fetch (only used if list form lacks answers)."""
+    url = f"https://developer.api.autodesk.com/construction/forms/v1/projects/{project_id}/forms/{form_id}"
+    params = {"include": "customValues,pdfValues"}
+    r = rl_request("GET", url, headers=H(tok), params=params, timeout=45)
+    if r.status_code != 200:
+        print(f"Failed to fetch form details {form_id}: {r.status_code} - {r.text}")
+        return None
+    j = r.json() or {}
+    return j.get("data") if isinstance(j, dict) and "data" in j else j
+
+def ensure_form_has_answers(tok: str, project_id: str, form_from_list: dict) -> dict:
+    """Prefer list form; if no answers there, fetch details and merge pdfValues if present."""
+    cv = form_from_list.get("customValues") or []
+    if cv:
+        return form_from_list
+    detail = get_form_details(tok, project_id, form_from_list.get("id", ""))
+    if not detail:
+        return form_from_list
+    if detail.get("customValues"):
+        return detail
+    if detail.get("pdfValues"):
+        merged = dict(form_from_list)
+        merged["pdfValues"] = detail["pdfValues"]
+        return merged
+    return form_from_list
+
+# -----------------------------
 # --------- FORMS -------------
 # -----------------------------
 def get_projects(tok: str) -> List[dict]:
-    # Paginate across ALL projects (no max), rate-limited
     url = f"https://developer.api.autodesk.com/project/v1/hubs/{HUB_ID}/projects"
     projects: List[dict] = []
     next_url = url
@@ -347,7 +367,7 @@ def _filter_by_formdate(forms: List[dict]) -> List[dict]:
     return out
 
 def list_forms_for_template(tok: str, project_id: str, template_name: str) -> List[dict]:
-    # Paginate across ALL forms, then filter by template name and formDate (client-side)
+    # Pull ALL forms (paginated), filter by template name client-side, then by formDate window.
     forms: List[dict] = []
     next_url = f"https://developer.api.autodesk.com/construction/forms/v1/projects/{project_id}/forms"
     while next_url:
@@ -359,12 +379,8 @@ def list_forms_for_template(tok: str, project_id: str, template_name: str) -> Li
         forms.extend(j.get("data") or j.get("results") or [])
         next_url = (j.get("pagination") or {}).get("nextUrl")
 
-    # Filter by template name
     matching = [f for f in forms if (f.get("formTemplate") or {}).get("name") == template_name]
-    # Apply formDate window if configured
     matching = _filter_by_formdate(matching)
-
-    print(f"Found {len(matching)} forms for template {template_name} in project {project_id} after formDate filtering")
     return matching
 
 def get_form_templates(tok: str, project_id: str) -> List[dict]:
@@ -385,31 +401,68 @@ def template_by_id(templates: List[dict], template_id: str) -> Optional[dict]:
     for t in templates:
         if t.get("id") == template_id:
             return t
-    print(f"Template {template_id} not found")
     return None
 
-def build_value_map(custom_values: List[dict]) -> Dict[str, object]:
-    vm = {}
+# -----------------------------
+# ---- ANSWER MAPPING ----------
+# -----------------------------
+def _norm(s: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", (s or "").strip().lower())
+
+def build_value_indexes(custom_values: List[dict]) -> (Dict[str, object], Dict[str, object]):
+    """
+    Build two indexes from customValues:
+      - by_id[str(itemId/fieldId)] -> raw value
+      - by_label_code[normalized(label/code combos)] -> raw value
+    Raw values will be converted to display strings later using template item metadata.
+    """
+    by_id: Dict[str, object] = {}
+    by_lbl: Dict[str, object] = {}
     for cv in custom_values or []:
-        iid = cv.get("itemId") or cv.get("fieldId")
-        if not iid:
-            continue
+        # unify the raw value
+        raw = None
         if "textVal" in cv and cv["textVal"] is not None:
-            vm[iid] = cv["textVal"]
+            raw = cv["textVal"]
         elif "multilineTextVal" in cv and cv["multilineTextVal"] is not None:
-            vm[iid] = cv["multilineTextVal"]
+            raw = cv["multilineTextVal"]
         elif "numberVal" in cv and cv["numberVal"] is not None:
-            vm[iid] = str(cv["numberVal"])
+            raw = str(cv["numberVal"])
         elif "dateVal" in cv and cv["dateVal"] is not None:
-            vm[iid] = cv["dateVal"]
+            raw = cv["dateVal"]
         elif "toggleVal" in cv and cv["toggleVal"] is not None:
-            vm[iid] = "Yes" if cv["toggleVal"] else "No"
+            raw = "Yes" if cv["toggleVal"] else "No"
         elif "choiceVal" in cv and cv["choiceVal"] is not None:
-            vm[iid] = cv["choiceVal"]
+            raw = cv["choiceVal"]
         elif "multiChoiceVal" in cv and cv["multiChoiceVal"] is not None:
-            vm[iid] = cv["multiChoiceVal"]
-    print(f"Built value map with {len(vm)} entries: {list(vm.keys())}")
-    return vm
+            raw = cv["multiChoiceVal"]
+        elif "value" in cv and cv["value"] is not None:
+            raw = cv["value"]
+
+        # index by id
+        iid = cv.get("itemId") or cv.get("fieldId")
+        if iid is not None:
+            by_id[str(iid)] = raw
+
+        # index by labels/codes when available
+        lbl = cv.get("itemLabel")
+        code = cv.get("itemCode")
+        if lbl:
+            by_lbl[_norm(lbl)] = raw
+        if code:
+            by_lbl[_norm(code)] = raw
+        if lbl and code:
+            by_lbl[_norm(f"{code} {lbl}")] = raw
+            by_lbl[_norm(f"{code}{lbl}")] = raw
+    return by_id, by_lbl
+
+def build_pdfvalue_map(form: dict) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for pv in (form.get("pdfValues") or []):
+        name = pv.get("name")
+        val = pv.get("value")
+        if name:
+            out[_norm(name)] = "" if val is None else str(val)
+    return out
 
 def value_to_label(item: dict, value) -> str:
     if value is None:
@@ -425,63 +478,52 @@ def value_to_label(item: dict, value) -> str:
         return ", ".join([x for x in labels if x]) if labels else "N/A"
     return str(value)
 
+def find_answer_for_item(item: dict, by_id: Dict[str, object], by_lbl: Dict[str, object], pdf_map: Dict[str, str]) -> str:
+    """
+    Resolve answer for a template item with multiple fallbacks:
+      1) by item.id
+      2) by label/code (normalized)
+      3) by pdfValues name matching
+    """
+    item_id = str(item.get("id") or "")
+    if item_id and item_id in by_id:
+        return value_to_label(item, by_id[item_id])
+
+    code = (item.get("code") or "").strip()
+    label = (item.get("label") or "").strip()
+    for cand in (code, label, (code + " " + label).strip(), (code + label).strip()):
+        k = _norm(cand)
+        if k and k in by_lbl:
+            return value_to_label(item, by_lbl[k])
+
+    # final fallback: pdfValues
+    for cand in (code, label, (code + " " + label).strip(), (code + label).strip()):
+        k = _norm(cand)
+        if k and k in pdf_map and pdf_map[k]:
+            return pdf_map[k]
+    return ""
+
 # -----------------------------
 # --------- PDF ---------------
 # -----------------------------
 def make_styles():
     styles = getSampleStyleSheet()
     style_definitions = [
-        {
-            'name': 'Title',
-            'parent': styles.get('Heading1', styles['Normal']),
-            'alignment': 1,
-            'fontSize': 18,
-            'textColor': colors.HexColor("#0055A4"),
-            'spaceAfter': 18
-        },
-        {
-            'name': 'SectionHeader',
-            'parent': styles.get('Heading2', styles['Normal']),
-            'fontSize': 14,
-            'textColor': colors.HexColor("#0055A4"),
-            'spaceAfter': 10,
-            'leading': 16
-        },
-        {
-            'name': 'FormName',  # centered form name line
-            'parent': styles.get('Heading2', styles['Normal']),
-            'alignment': 1,
-            'fontSize': 14,
-            'textColor': colors.HexColor("#0055A4"),
-            'spaceAfter': 10,
-            'leading': 16
-        },
-        {
-            'name': 'CenteredAddress',
-            'parent': styles.get('Normal', styles['Normal']),
-            'alignment': 1,
-            'fontSize': 10,
-            'leading': 12,
-            'spaceAfter': 6
-        },
-        {
-            'name': 'BodySmall',
-            'parent': styles.get('Normal', styles['Normal']),
-            'fontSize': 10,
-            'leading': 12,
-            'spaceAfter': 4
-        }
+        {'name': 'Title', 'parent': styles.get('Heading1', styles['Normal']),
+         'alignment': 1, 'fontSize': 18, 'textColor': colors.HexColor("#0055A4"), 'spaceAfter': 18},
+        {'name': 'SectionHeader', 'parent': styles.get('Heading2', styles['Normal']),
+         'fontSize': 14, 'textColor': colors.HexColor("#0055A4"), 'spaceAfter': 10, 'leading': 16},
+        {'name': 'FormName', 'parent': styles.get('Heading2', styles['Normal']),
+         'alignment': 1, 'fontSize': 14, 'textColor': colors.HexColor("#0055A4"), 'spaceAfter': 10, 'leading': 16},
+        {'name': 'CenteredAddress', 'parent': styles.get('Normal', styles['Normal']),
+         'alignment': 1, 'fontSize': 10, 'leading': 12, 'spaceAfter': 6},
+        {'name': 'BodySmall', 'parent': styles.get('Normal', styles['Normal']),
+         'fontSize': 10, 'leading': 12, 'spaceAfter': 4},
     ]
-    for style_def in style_definitions:
-        style_name = style_def['name']
-        if style_name not in styles.byName and style_name not in styles.byAlias:
-            try:
-                styles.add(ParagraphStyle(**style_def))
-                print(f"Successfully added style: {style_name}")
-            except Exception as e:
-                print(f"Failed to add style {style_name}: {str(e)}")
-        else:
-            print(f"Style {style_name} already exists, using existing style")
+    for sd in style_definitions:
+        nm = sd['name']
+        if nm not in styles.byName and nm not in styles.byAlias:
+            styles.add(ParagraphStyle(**sd))
     return styles
 
 def render_form_pdf(
@@ -504,49 +546,41 @@ def render_form_pdf(
     story.append(Paragraph(f"Form #{form.get('formNum', '')}: {FORM_TEMPLATE_NAME}", styles["FormName"]))
     story.append(Spacer(1, 8))
 
-    # Form Table
-    vm = build_value_map(form.get("customValues") or [])
+    # Build answer indexes and pdfValues map
+    custom_values = form.get("customValues") or []
+    by_id, by_lbl = build_value_indexes(custom_values)
+    pdf_map = build_pdfvalue_map(form)
+    print(f"Answer indexes: by_id={len(by_id)} by_lbl={len(by_lbl)} pdfValues={len(pdf_map)}")
+
+    # Table data
     data = []
     section_rows: List[int] = []
     sections = (template or {}).get("sections") or []
 
     if not sections:
-        print(f"No sections found for form {form.get('id')}, using custom values")
+        # Fallback layout when no template sections are available
         current_section = None
-        for cv in (form.get("customValues") or []):
+        for cv in custom_values:
             sec_label = cv.get("sectionLabel") or "Section"
             if sec_label != current_section:
                 data.append([Paragraph(f"<b>{sec_label}</b>", styles["SectionHeader"]), "", ""])
                 section_rows.append(len(data) - 1)
                 current_section = sec_label
-            item_id = cv.get("itemId") or cv.get("fieldId")
             item_label = cv.get("itemLabel") or "Item"
-            val = (
-                cv.get("textVal") or cv.get("multilineTextVal") or cv.get("numberVal")
-                or cv.get("dateVal") or ("Yes" if cv.get("toggleVal") else "No" if "toggleVal" in cv else "")
-            )
+            # reuse the resolved raw value from indexes:
+            raw = None
+            iid = str(cv.get("itemId") or cv.get("fieldId") or "")
+            if iid and iid in by_id:
+                raw = by_id[iid]
+            else:
+                k = _norm(item_label)
+                raw = by_lbl.get(k, "")
             data.append([
-                Paragraph(f"<b>{item_label}</b>", styles["BodySmall"]),   # IDs removed
-                Paragraph(str(val or ""), styles["BodySmall"]),
+                Paragraph(f"<b>{item_label}</b>", styles["BodySmall"]),
+                Paragraph(str(raw or ""), styles["BodySmall"]),
                 ""
             ])
-            if item_id in field_photo_paths:
-                print(f"Found {len(field_photo_paths[item_id])} formfield photos for field {item_id}")
-                for photo_path in field_photo_paths.get(item_id, []):
-                    if isinstance(photo_path, str) and photo_path and os.path.exists(photo_path):
-                        try:
-                            img = Image(photo_path, width=IMG_COL_W, height=IMG_COL_W, kind='bound')
-                            if data:
-                                data[-1][2] = img
-                            print(f"Added formfield photo {photo_path} for field {item_id}")
-                        except Exception as e:
-                            data[-1][2] = Paragraph(f"(formfield image failed: {str(e)})", styles["BodySmall"])
-                            print(f"Failed to add formfield photo {photo_path} for field {item_id}: {str(e)}")
-                    else:
-                        data[-1][2] = Paragraph("(formfield image unavailable)", styles["BodySmall"])
-                        print(f"Invalid or missing photo path {photo_path} for field {item_id}")
     else:
-        print(f"Found {len(sections)} sections for form {form.get('id')}")
         for sec in sections:
             s_code = sec.get("code") or ""
             s_label = sec.get("label") or ""
@@ -554,6 +588,7 @@ def render_form_pdf(
             if header_txt:
                 data.append([Paragraph(f"<b>{header_txt}</b>", styles["SectionHeader"]), "", ""])
                 section_rows.append(len(data) - 1)
+
             for item in (sec.get("items") or []):
                 t = item.get("type")
                 if t in ("header", "label"):
@@ -561,33 +596,27 @@ def render_form_pdf(
                     data.append([Paragraph(f"<b>{txt}</b>", styles["BodySmall"]), "", ""])
                     section_rows.append(len(data) - 1)
                     continue
-                iid = item.get("id")
-                val = vm.get(iid, None)
-                val_str = value_to_label(item, val) if val is not None else ""
+
+                val_str = find_answer_for_item(item, by_id, by_lbl, pdf_map)
                 label = ((item.get("code") or "") + " " + (item.get("label") or "")).strip()
+
                 data.append([
-                    Paragraph(f"<b>{label}</b>", styles["BodySmall"]),  # IDs removed
+                    Paragraph(f"<b>{label}</b>", styles["BodySmall"]),
                     Paragraph(val_str, styles["BodySmall"]),
                     ""
                 ])
+
+                iid = str(item.get("id") or "")
                 if iid in field_photo_paths:
-                    print(f"Found {len(field_photo_paths[iid])} formfield photos for field {iid}")
                     for photo_path in field_photo_paths.get(iid, []):
                         if isinstance(photo_path, str) and photo_path and os.path.exists(photo_path):
                             try:
                                 img = Image(photo_path, width=IMG_COL_W, height=IMG_COL_W, kind='bound')
-                                if data:
-                                    data[-1][2] = img
-                                print(f"Added formfield photo {photo_path} for field {iid}")
-                            except Exception as e:
-                                data[-1][2] = Paragraph(f"(formfield image failed: {str(e)})", styles["BodySmall"])
-                                print(f"Failed to add formfield photo {photo_path} for field {iid}: {str(e)}")
-                        else:
-                            data[-1][2] = Paragraph("(formfield image unavailable)", styles["BodySmall"])
-                            print(f"Invalid or missing photo path {photo_path} for field {iid}")
-   
-    table = Table(data, colWidths=[TEXT_COL_W, TEXT_COL_W, IMG_COL_W])
+                                data[-1][2] = img
+                            except Exception:
+                                data[-1][2] = Paragraph("(formfield image failed)", styles["BodySmall"])
 
+    table = Table(data, colWidths=[TEXT_COL_W, TEXT_COL_W, IMG_COL_W])
     tbl_styles = [
         ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -599,29 +628,23 @@ def render_form_pdf(
     ]
     for r in section_rows:
         tbl_styles.append(("SPAN", (0, r), (-1, r)))
-
     table.setStyle(TableStyle(tbl_styles))
     story.append(table)
     story.append(Spacer(1, 12))
 
-    # Referenced Photos Grid
+    # Referenced Photos Grid (3 across, square cells, bound like field photos)
     story.append(Paragraph("Referenced Photos", styles["SectionHeader"]))
     if ref_photo_paths:
-        print(f"Found {len(ref_photo_paths)} referenced photos for form {form.get('id')}")
         cols = 3
         cell_w = (A4[0] - (36 + 36) - (cols - 1) * 6) / cols
-        rows = []
-        row = []
+        rows, row = [], []
         for i, p in enumerate(ref_photo_paths, 1):
             try:
                 row.append(Image(p, width=cell_w, height=cell_w, kind='bound'))
-                print(f"Added referenced photo {p}")
-            except Exception as e:
-                row.append(Paragraph(f"(referenced image failed: {str(e)})", styles["BodySmall"]))
-                print(f"Failed to add referenced photo {p}: {str(e)}")
+            except Exception:
+                row.append(Paragraph("(referenced image failed)", styles["BodySmall"]))
             if i % cols == 0:
-                rows.append(row)
-                row = []
+                rows.append(row); row = []
         if row:
             while len(row) < cols:
                 row.append("")
@@ -636,7 +659,6 @@ def render_form_pdf(
         story.append(grid)
     else:
         story.append(Paragraph("<i>No referenced photos for this form.</i>", styles["BodySmall"]))
-        print(f"No referenced photos for form {form.get('id')}")
 
     if page_decorator:
         doc.build(story, onFirstPage=page_decorator, onLaterPages=page_decorator)
@@ -662,7 +684,6 @@ def list_forms_for_all_projects(tok: str) -> List[dict]:
         project_address = addr_map.get(project_id, "No address available")
         forms = list_forms_for_template(tok, project_id, FORM_TEMPLATE_NAME)
         if not forms:
-            print(f"No forms found for {FORM_TEMPLATE_NAME} in project {project_id}")
             continue
         results.append((project_id, project_name, project_address, forms))
     return results
@@ -681,6 +702,7 @@ def main():
 
     # Gather forms across all projects (after template + formDate filtering)
     proj_forms = list_forms_for_all_projects(tok)
+
     # Pre-fetch relationships once per project (for all forms in that project)
     for project_id, project_name, project_address, forms in proj_forms:
         form_field_photos = rel_formfield_to_photos(tok, project_id)
@@ -690,6 +712,9 @@ def main():
             form_id = form.get("id")
             if not form_id:
                 continue
+
+            # Ensure we have answers; detail only if list lacks them
+            form = ensure_form_has_answers(tok, project_id, form)
 
             # referenced photos
             ref_photo_ids = rel_form_to_photos(tok, project_id, form_id)
@@ -710,6 +735,7 @@ def main():
             field_photo_paths = {field_id: [field_photo_map.get(pid) for pid in photos if pid in field_photo_map]
                                  for field_id, photos in field_photos.items()}
 
+            # template for structure
             tmpl_id = (form.get("formTemplate") or {}).get("id")
             tmpl = template_by_id(templates, tmpl_id) if tmpl_id else None
 
@@ -727,7 +753,7 @@ def main():
                 page_decorator=page_logo_draw,  # draw logo on every page
             )
             produced_pdfs.append(out_pdf)
-            print(f"Generated PDF for form {form_id} with {len(field_photo_ids)} formfield photos and {len(ref_photo_paths)} referenced photos")
+            print(f"Generated PDF for form {form_id}")
 
     if produced_pdfs:
         merger = PdfMerger()
