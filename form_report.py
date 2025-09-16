@@ -4,7 +4,7 @@
 # CONFIG section is the only section you need to fill out before running 
 # Make sure Logo_Path points to the absolute logo file path on your computer 
 # Copy paste the below script into a .py file, name it form_reports.py > save it same folder as get_tokens.py is in
-# In terminal > "cd 'INSERT ABSOLUTE FILE PATH TO FORM REPORTS FOLDER'" > Enter > Python3 form_reports.py > Enter 
+# In terminal > "cd 'INSERT ABSOLUTE FILE PATH TO FORM REPORTS FOLDER'" > Enter > "Python3 form_reports.py" > Enter 
 
 import os
 import re
