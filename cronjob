@@ -1,5 +1,5 @@
 #COMPUTER MUST BE ON AND CONNECTED  TO INTERNET AT SCHEDULED TIME IN ORDER FOR IT TO RUN 
-# in terminal > "cd 'absolute file path to your form_reports folder'" > type "crontab -e" > Enter
+# in terminal > "cd 'INSERT ABSOLUTE PATH TO FORM REPORTS FOLDER'" > type "crontab -e" > Enter
 # copy paste the below into crontab (MAKE SURE YOU INSERT ABSOLUTE FOLDER PATH BOTH PLACES BELOW)
 
 SHELL=/bin/bash
