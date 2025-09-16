@@ -1,7 +1,7 @@
 #INSTRUCTIONS:
 
 #make sure dependancies from README are installed first 
-#copy paste the below script into a .py file, save the .py file as get_tokens.py in a "weekly report" folder 
+#copy paste the below script into a .py file, save the .py file as get_tokens.py in a "form report" folder 
 #in terminal > "cd 'ABSOLUTE FOLDER PATH'" to the folder you saved to in previous step > "python3 get_tokens.py" > Enter
 #after running this script, it will re route you to ADSK login 
 #copy paste code from URL and enter it in response
