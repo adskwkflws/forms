@@ -1,4 +1,4 @@
-# in terminal > cd "absolute file path to your weekly_reports folder" > type "crontab -e"
+# in terminal > "cd 'absolute file path to your weekly_reports folder'" > type "crontab -e" > Enter
 # copy paste the below into crontab:
 
 SHELL=/bin/bash
@@ -6,5 +6,7 @@ PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
 0 12 * * 5 cd "/Users/alexanderjvanhoff/Documents/Starline Weekly Reports" && /usr/bin/env python3 weekly_report.py >> "/Users/alexanderjvanhoff/Documents/Starline Weekly Reports/cron.log" 2>&1
 
 # Esc (exits insert mode) 
-# Type :wq > enter (saves crontab) 
-# In terminal cd > "crontab -l" > enter (confirms cronjob was successfully created) 
+# type ":wq" > enter (saves crontab) 
+# in terminal: "cd 'absolute file path to your weekly_reports folder'" > "crontab -l" > enter (confirms cronjob was successfully created) 
+
+#COMPUTER MUST BE ON AND CONNECTED  TO INTERNET AT SCHEDULED TIME IN ORDER FOR IT TO RUN 
