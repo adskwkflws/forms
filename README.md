@@ -3,6 +3,12 @@
 (2) Create a custom integration in Account admin in your ACC account. 
 
 ^ This is how you get CLIENT_ID and CLIENT_SECRET
+
+(3) Follow instructions in get_tokens.py
+
+(4) Follow instructions in weekly_report.py 
+
+(5) Follow instructions in cronjob
 ___________________________
 
 DEPENDANCIES: 
