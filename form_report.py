@@ -3,8 +3,8 @@
 # Make sure dependancies from README are installed first 
 # CONFIG section is the only section you need to fill out before running 
 # Make sure Logo_Path points to the absolute logo file path on your computer 
-# Copy paste the below script into a .py file, name it weekly_reports.py > save it same folder as get_tokens.py is in
-# In terminal > "cd 'absolute file to weekly reports folder'" > Enter > Python3 weekly_reports.py > Enter 
+# Copy paste the below script into a .py file, name it form_reports.py > save it same folder as get_tokens.py is in
+# In terminal > "cd 'INSERT ABSOLUTE FILE PATH TO FORM REPORTS FOLDER'" > Enter > Python3 form_reports.py > Enter 
 
 import os
 import re
@@ -42,10 +42,10 @@ HUB_ID = "INSERT HUB_ID HERE" #this is your ACC Account ID with "b." prefix
 ACCOUNT_ID = HUB_ID.replace("b.", "")
 REGION = "US"
 FORM_TEMPLATE_NAME = "IN-0005A Project Weekly Report" #must be exact in order to work 
-TOKENS_FILE = "INSERT ABSOLUTE FILE PATH TO WEEKLY REPORT FOLDER HERE/tokens.json"" #make sure tokens.json suffix stays on folder path 
+TOKENS_FILE = "INSERT ABSOLUTE FILE PATH TO FORM REPORT FOLDER HERE/tokens.json"" #make sure tokens.json suffix stays on folder path 
 
 # Save directly to a folder on your PC
-OUTPUT_DIR = "INSERT ABSOLUTE FILE PATH TO WEEKLY REPORT FOLDER HERE"
+OUTPUT_DIR = "INSERT ABSOLUTE FILE PATH TO FORM REPORT FOLDER HERE"
 
 # Auto-dated filename template
 COMBINED_PDF_NAME_TEMPLATE = "Weekly Report - {date}.pdf" #can leave this as is
