@@ -1,12 +1,12 @@
 #COMPUTER MUST BE ON AND CONNECTED  TO INTERNET AT SCHEDULED TIME IN ORDER FOR IT TO RUN 
-# in terminal > "cd 'absolute file path to your weekly_reports folder'" > type "crontab -e" > Enter
+# in terminal > "cd 'absolute file path to your form_reports folder'" > type "crontab -e" > Enter
 # copy paste the below into crontab (MAKE SURE YOU INSERT ABSOLUTE FOLDER PATH BOTH PLACES BELOW)
 
 SHELL=/bin/bash
 PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
-0 12 * * 5 cd "INSERT ABSOLUTE PATH TO WEEKLY REPORTS FOLDER" && /usr/bin/env python3 weekly_report.py >> "INSERT ABSOLUTE PATH TO WEEKLY REPORTS FOLDER/cron.log" 2>&1
+0 12 * * 5 cd "INSERT ABSOLUTE PATH TO FORM REPORTS FOLDER" && /usr/bin/env python3 weekly_report.py >> "INSERT ABSOLUTE PATH TO FORM REPORTS FOLDER/cron.log" 2>&1
 
 # Esc (exits insert mode) 
 # type ":wq" > enter (saves crontab) 
-# in terminal: "cd 'absolute file path to your weekly_reports folder'" > "crontab -l" > enter (confirms cronjob was successfully created) 
+# in terminal: "cd 'INSERT ABSOLUTE PATH TO FORM REPORTS FOLDER'" > "crontab -l" > enter (confirms cronjob was successfully created) 
 
