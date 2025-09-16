@@ -1,10 +1,10 @@
 #INSTRUCTIONS
 
-#make sure dependancies from README are installed first 
-#Config section is the only section you need to fill out before running 
-#Make sure Logo_Path points to the absolute logo file path on your computer 
-#copy paste the below script into a .py file, name it weekly_reports.py > save it same folder as get_tokens.py is in
-
+# Make sure dependancies from README are installed first 
+# CONFIG section is the only section you need to fill out before running 
+# Make sure Logo_Path points to the absolute logo file path on your computer 
+# Copy paste the below script into a .py file, name it weekly_reports.py > save it same folder as get_tokens.py is in
+# In terminal > "cd 'absolute file to weekly reports folder'" > Enter > Python3 weekly_reports.py > Enter 
 
 import os
 import re
@@ -36,24 +36,24 @@ from PIL import ImageOps
 # -----------------------------
 # -------- CONFIG -------------
 # -----------------------------
-CLIENT_ID = "A1nztYubWhnUuGqYYwiAh5GpAFKLlb2SwKpJIo4nl2RmDzL7"
-CLIENT_SECRET = "O8XG4Kfyz0xEWyMYx2J8h2pgeRkGfrGOVmHpj7GNT1dJnAsYyeAxLht7EGFcNyK6"
-HUB_ID = "b.f4e6839c-aadd-436f-8d8a-2ec020663d3c"
+CLIENT_ID = "INSERT YOUR CLIENT_ID HERE" #from APS 
+CLIENT_SECRET = "INSERT YOUR CLIENT_SECRET HERE" #from APS
+HUB_ID = "INSERT HUB_ID HERE" #this is your ACC Account ID with "b." prefix 
 ACCOUNT_ID = HUB_ID.replace("b.", "")
 REGION = "US"
-FORM_TEMPLATE_NAME = "IN-0005A Project Weekly Report"
-TOKENS_FILE = "/Users/alexanderjvanhoff/Documents/Starline Weekly Reports/tokens.json""
+FORM_TEMPLATE_NAME = "IN-0005A Project Weekly Report" #must be exact in order to work 
+TOKENS_FILE = "INSERT ABSOLUTE FILE PATH TO WEEKLY REPORT FOLDER HERE/tokens.json"" #make sure tokens.json suffix stays on folder path 
 
 # Save directly to a folder on your Mac (change if you like)
-OUTPUT_DIR = "/Users/alexanderjvanhoff/Documents/Starline Weekly Reports"
+OUTPUT_DIR = "INSERT ABSOLUTE FILE PATH TO WEEKLY REPORT FOLDER HERE"
 
 # Auto-dated filename template (e.g., "Weekly Report - 2025-09-16.pdf")
-COMBINED_PDF_NAME_TEMPLATE = "Weekly Report - {date}.pdf"
+COMBINED_PDF_NAME_TEMPLATE = "Weekly Report - {date}.pdf" #can leave this as is
 
-FORMDATE_LAST_N_DAYS = 30  # set None to disable
+FORMDATE_LAST_N_DAYS = 7  # set None to disable
 
 # --- LOGO ---
-LOGO_PATH = "/Users/alexanderjvanhoff/Downloads/Starlinelogo.png"
+LOGO_PATH = "INSERT ABSOLUTE FILE PATH TO YOUR LOGO IMAGE HERE"
 LOGO_MAX_W = 1.2 * inch
 LOGO_MAX_H = 0.40 * inch
 LOGO_PADDING_RIGHT = 0
