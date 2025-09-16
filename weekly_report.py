@@ -44,10 +44,10 @@ REGION = "US"
 FORM_TEMPLATE_NAME = "IN-0005A Project Weekly Report" #must be exact in order to work 
 TOKENS_FILE = "INSERT ABSOLUTE FILE PATH TO WEEKLY REPORT FOLDER HERE/tokens.json"" #make sure tokens.json suffix stays on folder path 
 
-# Save directly to a folder on your Mac (change if you like)
+# Save directly to a folder on your PC
 OUTPUT_DIR = "INSERT ABSOLUTE FILE PATH TO WEEKLY REPORT FOLDER HERE"
 
-# Auto-dated filename template (e.g., "Weekly Report - 2025-09-16.pdf")
+# Auto-dated filename template
 COMBINED_PDF_NAME_TEMPLATE = "Weekly Report - {date}.pdf" #can leave this as is
 
 FORMDATE_LAST_N_DAYS = 7  # set None to disable
