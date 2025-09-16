@@ -1,8 +1,8 @@
 #INSTRUCTIONS:
 
 #make sure dependancies from README are installed first 
-#copy paste the below script into a .py file, save the .py file as get_tokens.py in a folder.
-#(can skip this if you're using cron job) in terminal > "cd 'absolute folder path'" to the folder you saved to in previous step > "python3 get_tokens.py" > Enter
+#copy paste the below script into a .py file, save the .py file as get_tokens.py in a "weekly report" folder 
+#in terminal > "cd 'absolute folder path'" to the folder you saved to in previous step > "python3 get_tokens.py" > Enter
 #after running this script, it will re route you to ADSK login 
 #copy paste code from URL and enter it in response
 
