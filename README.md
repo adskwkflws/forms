@@ -16,6 +16,6 @@ DEPENDANCIES:
 Pip install 
 
 reportlab
-PyPDF2
 requests
 pillow
+pillow-heic
